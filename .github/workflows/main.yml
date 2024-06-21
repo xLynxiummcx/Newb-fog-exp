@@ -4,50 +4,42 @@ on:
   push:
     tags:
       - 'v*.*.*'  # Trigger on version tags
+  workflow_dispatch:  # Allows manual trigger of the workflow
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '14'  # Use the Node.js version you need
+      - name: Create ZIP file
+        run: |
+          mkdir -p release
+          zip -r release/pack.zip pack/fogs pack/biome_client.json
 
-    - name: Install dependencies
-      run: npm install
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Full Scale Automation
+          body: |
+            This release includes the following:
+            - Packed fogs
+            - biome_client.json
+          draft: false
+          prerelease: false
 
-    - name: Create ZIP file
-      run: |
-        mkdir -p release
-        zip -r release/pack.zip pack/fogs pack/biome_client.json
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Full Scale Automation
-        body: |
-          This release includes the following:
-          - Packed fogs
-          - biome_client.json
-        draft: false
-        prerelease: false
-
-    - name: Upload Release Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: release/pack.zip
-        asset_name: pack.zip
-        asset_content_type: application/zip
-
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: release/pack.zip
+          asset_name: pack.zip
+          asset_content_type: application/zip
